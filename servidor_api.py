@@ -49,10 +49,64 @@ def health():
         'device': str(device)
     })
 
+@app.route('/llamar_carro', methods=['POST'])
+def llamar_carro():
+    """Endpoint para llamar al carro autónomo con ubicación GPS"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'error': 'No se recibieron datos'}), 400
+        
+        # Obtener datos de la llamada
+        latitud = data.get('latitud')
+        longitud = data.get('longitud')
+        tipo_herida = data.get('tipo_herida', 'Desconocido')
+        confianza = data.get('confianza', 0)
+        timestamp = data.get('timestamp')
+        
+        if latitud is None or longitud is None:
+            return jsonify({'error': 'Falta latitud o longitud'}), 400
+        
+        # Log de la solicitud
+        print(f"\n{'='*60}")
+        print(f"🚨 LLAMADA DE EMERGENCIA")
+        print(f"{'='*60}")
+        print(f"📍 Ubicación: {latitud}, {longitud}")
+        print(f"🩹 Tipo de herida: {tipo_herida} ({confianza}% confianza)")
+        print(f"🕐 Timestamp: {timestamp}")
+        print(f"{'='*60}\n")
+        
+        # TODO: Aquí enviarías el comando al carro físico
+        # Por ahora solo guardamos y confirmamos
+        
+        # Simular respuesta del carro
+        response = {
+            'success': True,
+            'mensaje': 'Carro en camino',
+            'ubicacion_destino': {
+                'latitud': latitud,
+                'longitud': longitud
+            },
+            'tiempo_estimado': '5-7 minutos',  # Esto lo calcularía el carro
+            'estado_carro': 'En ruta'
+        }
+        
+        return jsonify(response)
+    
+    except Exception as e:
+        print(f"Error en llamada de carro: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/clasificar', methods=['POST'])
 def clasificar():
     """Endpoint para clasificar heridas - Compatible con app Flutter"""
     try:
+        import gc
+        
         # Obtener datos JSON
         data = request.get_json()
         
@@ -83,6 +137,10 @@ def clasificar():
             for i in range(len(class_names))
         }
         
+        # Liberar memoria
+        del image_tensor, outputs, probabilidades
+        gc.collect()
+        
         return jsonify({
             'prediccion': clase_predicha,
             'confianza': round(confianza_pct, 2),
@@ -91,6 +149,8 @@ def clasificar():
     
     except Exception as e:
         print(f"Error en clasificación: {str(e)}")
+        import gc
+        gc.collect()
         return jsonify({
             'error': str(e)
         }), 500
